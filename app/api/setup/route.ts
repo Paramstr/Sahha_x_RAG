@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { PineconeClient } from '@pinecone-database/pinecone'
 import { TextLoader } from 'langchain/document_loaders/fs/text'
 import { DirectoryLoader } from 'langchain/document_loaders/fs/directory'
-import { PDFLoader } from 'langchain/document_loaders/fs/pdf'
+import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf'
 import {
   createPineconeIndex,
   updatePinecone
@@ -26,13 +26,17 @@ export async function POST() {
   })
 
   try {
-    await createPineconeIndex(client, indexName, vectorDimensions)
+    //await createPineconeIndex(client, indexName, vectorDimensions)
     await updatePinecone(client, indexName, docs)
   } catch (err) {
     console.log('error: ', err)
+    //console.error('Detailed error:', JSON.stringify(err, null, 2))
   }
 
   return NextResponse.json({
     data: 'successfully created index and loaded data into pinecone...'
   })
+
+
 }
+
