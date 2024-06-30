@@ -7,6 +7,33 @@ import { timeout } from './config'
 import { Pinecone } from '@pinecone-database/pinecone'
 import { encodingForModel } from "js-tiktoken";
 
+const MAX_TOKENS = 8000; // Setting a safe limit below 8192
+
+/*
+  Function creates embeddings to send to LLM.
+  Each embedding is generated at maximum size 8000 as ADA_Embeddings model only supports upto 8192.
+
+*/
+async function createChunkedEmbeddings(text: string): Promise<number[]> {
+  const encoder = encodingForModel("gpt-4"); // Using gpt-4 encoder as an approximation
+  const tokens = encoder.encode(text);
+  
+  let embeddings: number[] = [];
+  const embedder = new OpenAIEmbeddings();
+
+  for (let i = 0; i < tokens.length; i += MAX_TOKENS) {
+    const chunkTokens = tokens.slice(i, i + MAX_TOKENS);
+    const chunkText = encoder.decode(chunkTokens);
+    console.log(`Creating embedding for chunk ${i / MAX_TOKENS + 1}, tokens: ${chunkTokens.length}`);
+    
+    const chunkEmbedding = await embedder.embedQuery(chunkText);
+
+    
+    embeddings = embeddings.concat(chunkEmbedding);
+  }
+
+  return embeddings;
+}
 
 export const queryPineconeVectorStoreAndQueryLLM = async (
   pc: Pinecone,
@@ -16,47 +43,48 @@ export const queryPineconeVectorStoreAndQueryLLM = async (
   console.log('Querying Pinecone vector store...');
   const index = pc.index(indexName);
 
-  const queryEmbedding = await new OpenAIEmbeddings().embedQuery(question)
-  
-  let queryResponse = await index.query({
-    vector: queryEmbedding,
-    topK: 10,
-    includeMetadata: true,
-    includeValues: true,
-  });
+  console.log('DEBUG: Creating embedding for question...');
+  const queryEmbedding = await createChunkedEmbeddings(question);
+  console.log('DEBUG: Embedding created successfully. Length:', queryEmbedding.length);
 
-    console.log(`Found ${queryResponse.matches.length} matches...`);
-  console.log('Retrieved matches:');
-  queryResponse.matches.forEach((match, index) => {
-    console.log(`\nMatch ${index + 1}:`);
-    console.log(`ID: ${match.id}`);
-    console.log(`Score: ${match.score}`);
-    console.log('Metadata:');
-    console.log(JSON.stringify(match.metadata, null, 2));
-    console.log('Page Content:');
-    const pageContent = match.metadata?.pageContent;
-    if (typeof pageContent === 'string') {
-      console.log(pageContent.substring(0, 150) + '...');  // Display first 150 characters
-    }
-  });
+/*############ PINECONE QUERYING AND DISPLAYING ############*/
+  // let queryResponse = await index.query({
+  //   vector: queryEmbedding,
+  //   topK: 10,
+  //   includeMetadata: true,
+  //   includeValues: true,
+  // });
 
-  console.log(`Found ${queryResponse.matches.length} matches...`);
-  console.log(`Asking question: ${question}...`);
+  //   console.log(`Found ${queryResponse.matches.length} matches...`);
+  // console.log('Retrieved matches:');
+  // queryResponse.matches.forEach((match, index) => {
+  //   console.log(`\nMatch ${index + 1}:`);
+  //   console.log(`ID: ${match.id}`);
+  //   console.log(`Score: ${match.score}`);
+  //   console.log('Metadata:');
+  //   console.log(JSON.stringify(match.metadata, null, 2));
+  //   console.log('Page Content:');
+  //   const pageContent = match.metadata?.pageContent;
+  //   if (typeof pageContent === 'string') {
+  //     console.log(pageContent.substring(0, 150) + '...');  // Display first 150 characters
+  //   }
+  // });
 
-  if (queryResponse.matches.length) {
+  // console.log(`Found ${queryResponse.matches.length} matches...`);
+  // console.log(`Asking question: ${question}...`);
+/*################################################*/
+  if (queryEmbedding.length) {
     const llm = new OpenAI({
       modelName: 'gpt-4-turbo',
     });
     const chain = loadQAStuffChain(llm);
-    const concatenatedPageContent = queryResponse.matches
-      .map((match) => match.metadata?.pageContent || "")
-      .filter(content => content !== "")
-      .join(" ");
+    // const concatenatedPageContent = queryResponse.matches
+    //   .map((match) => match.metadata?.pageContent || "")
+    //   .filter(content => content !== "")
+    //   .join(" ");
 
       // Log the combined input
     console.log("\nDEBUG--- Combined Input to LLM ---");
-    console.log("Context (first 500 characters):");
-    console.log(concatenatedPageContent.substring(0, 500) + (concatenatedPageContent.length > 500 ? "..." : ""));
     console.log("\nQuestion:");
     console.log(question);
     console.log("-------------------------------\n");
@@ -65,23 +93,23 @@ export const queryPineconeVectorStoreAndQueryLLM = async (
     
     //log token input
     const encoder = encodingForModel("gpt-4");
-    const inputTokens = encoder.encode(concatenatedPageContent + question);
+    const inputTokens = encoder.encode(question);
     console.log(`⚡️ Input tokens: ${inputTokens.length}`);
 
+
+    //! LANGCHAIN FUNCTION CALL TO OPENAI MODEL
     const result = await chain.call({
-      input_documents: [new Document({ pageContent: concatenatedPageContent })],
+      input_documents: [new Document({ pageContent: "" })],
       question: question,
     });
 
 
 
-    
+    //logging tokens
     console.log(`Answer: ${result.text}`);
-
-    // Count output tokens
+    console.log(`⚡️ Input tokens: ${inputTokens.length}`);
     const outputTokens = encoder.encode(result.text);
     console.log(`⚡️ Output tokens: ${outputTokens.length}`);
-    // Total tokens
     console.log(`⚡️ Total tokens: ${inputTokens.length + outputTokens.length}`);
 
     
