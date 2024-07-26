@@ -1,13 +1,6 @@
-# Langchain, Pinecone, and GPT with Next.js - Full Stack Starter
+# Sahha x Rag
 
-This is a basic starter project for building with the following tools and APIs:
-
-- Next.js
-- LangchainJS
-- Pineceone Vector Database
-- GPT3
-
-When I started diving into all of this, I felt while I understood some of the individual pieces, it was hard to piece together everything into a cohesive project. I hope this project is useful for anyone looking to build with this stack, and just needing something to start with.
+This project utilises Sahha demo data to provide LLM inference on time series data health data. Currently supported for daily and week long inference.
 
 ### What we're building
 
@@ -36,10 +29,6 @@ To run the app locally, follow these steps:
 
 1. Clone this repo
 
-```sh
-git clone git@github.com:dabit3/semantic-search-nextjs-pinecone-langchain-chatgpt.git
-```
-
 2. Change into the directory and install the dependencies using either NPM or Yarn
 
 3. Copy `.example.env.local` to a new file called `.env.local` and update with your API keys and environment.
@@ -60,13 +49,7 @@ When creating the embeddings and the index, it can take up to 2-4 minutes for th
 
 If the initialization takes longer, then it will fail the first time you try to create the embeddings. If this happens, visit [the Pinecone console](https://app.pinecone.io/) to watch and wait for the status of your index being created to finish, then run the function again.
 
-### Running a query
 
-__The pre-configured app data is about the [Lens protocol developer documentation](https://docs.lens.xyz/docs/overview), so it will only understand questions about it unless you replace it with your own data. Here are a couple of questions you might ask it with the default data__
-
-1. What is the difference between Lens and traditional social platforms
-2. What is the difference between the Lens SDK and the Lens API
-3. How to query Lens data in bulk?
 
 > The base of this project was guided by [this Node.js tutorial](https://www.youtube.com/watch?v=CF5buEVrYwo), with some restructuring and ported over to Next.js. You can also follow them [here](https://twitter.com/Dev__Digest/status/1656744114409406467) on Twitter!
 
