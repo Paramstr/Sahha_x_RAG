@@ -1,6 +1,6 @@
 # Sahha x Rag
 
-This project utilises Sahha demo data to provide LLM inference on time series data health data. Currently supported for daily and week long inference.
+This project utilises Sahha demo data to provide LLM inference on time series health data. Currently supported for daily and week long inference.
 
 ### What we're building
 
